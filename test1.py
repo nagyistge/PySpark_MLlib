@@ -2,14 +2,12 @@
 # code is executed on Databricks
 
 import pyspark
-import numpy as np
-import matplotlib.pyplot as plt
 from pyspark import SQLContext
 from pyspark import SparkContext
 sc = SparkContext()
 
 # import dataframe from s3
-filepath = 's3a://mdv-sandbox/michael/python_testing/data/raw'
+filepath = 's3a://somefilepathhere'
 df = spark.read.parquet(filepath)
 df.printSchema()
 
