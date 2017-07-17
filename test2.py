@@ -37,6 +37,7 @@ df_indexed.show()
 encoder = OneHotEncoder(includeFirst = False, inputCol = 'gender_index', outputCol = 'gender_vec')
 df_encoded = encoder.transform(df_indexed)
 
+# 1.3 use udf (user defined function)
 # if the catetgorical variables are known and the number of levels is small, use udf to convert
 from pyspark.sql.functions import udf
 def gender_map(gender):
@@ -49,7 +50,7 @@ df.withColumn('patient_gender_index', udfGenderToNumber('patient_gender')).show(
 # the udf is also applicable for ordinal variables, if the number of levels are limited
 # and the order of levels are known
 
-# 1.3 use VectorIndexer
+# 1.4 use VectorIndexer
 # 	automatically decide which features are categorical and convert original values to category indices.
 # 	input: 
 # 		inputCol, outputCol, MaxCategories
