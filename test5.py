@@ -23,4 +23,4 @@ training, test = df.randomSplit([0.7,0.3], seed = 1234)
 lr = LogisticRegression(maxIter = 10, regParam = 0.3, elasticNetParam = 0.8)
 lrModel = lr.fit(training)
 
-# 
+#

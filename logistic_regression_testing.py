@@ -1,15 +1,26 @@
-# PySpark Logsitic Regression testing
-# code executed on databricks
+
+# coding: utf-8
+
+# Test Logistic Regression in MLlib
+
+# In[2]:
 
 import pyspark
+import numpy as np
 from pyspark import SQLContext
 from pyspark import SparkContext
-sc = SparkContext()
+
+
+# In[3]:
 
 # import dataframe from s3, which will be used as a training dataset
-filepath = 's3a://somefilepathhere'
-df = spark.read.parquet(filepath)
+filepath = '/mnt/somefilepath/'
+df = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").option("inferschema", "true").option("mode", "DROPMALFORMED").load(filepath)
+df.cache()
 df.printSchema()
+
+
+# In[4]:
 
 # set up binomial logistic regression model with elastic net regularization.
 # regParam is lambda (>0) and elasticNetParam is alpha (0 <= alpha <= 1)
@@ -17,30 +28,43 @@ df.printSchema()
 # when alpha = 1 --> lasso; when alpha = 0 --> ridge
 # regularization prevents overfitting 
 from pyspark.ml.classification import LogisticRegression
-lr = LogisticRegression(maxIter = 10, regParam = 0.3, elasticNetParam = 0.8)
+lr = LogisticRegression(labelCol="biologic", featuresCol="features", maxIter = 10, regParam = 0.0, elasticNetParam = 0.8)
+
+
+# In[5]:
+
+# define features and label
+from pyspark.ml.feature import VectorAssembler
+assembler = (VectorAssembler(inputCols=[x for x in df.columns if x not in ['biologic']],outputCol='features'))
+df_cleaned = assembler.transform(df)
+df_cleaned.cache()
+
+
+# In[6]:
 
 # fit the model
-lrModel = lr.fit(df)
+lrModel = lr.fit(df_cleaned)
+
+
+# In[7]:
 
 # print coefficients and intercept
 print('Coefficient: ', str(lrModel.coefficients))
 print('Intercept: ', str(lrModel.intercept))
 
-# Another way is to use multinomial logistic regression and 
-# specifying family as 'multinomial' for binary classification
 
-# set up multinomial logistic regression model with regularization
-mlr = LogisticRegression(maxIter = 10, regParam = 0.3, elasticNetParam = 0.8, family = 'multinomial')
+# In[8]:
 
-# fit the model
-mlrModel = mlr.fit(df)
+df_cleaned.select('features').show(5)
 
-# print coefficients and intercept
-print('Coefficient: ', str(mlrModel.coefficients))
-print('Intercept: ', str(mlrModel.intercept))
+
+# In[9]:
 
 # Extract the summary from the returned LogisticRegression model instance trained in training df
 trainingSummary = lrModel.summary
+
+
+# In[10]:
 
 # obtain the objective per iteration
 objectiveHistory = trainingSummary.objectiveHistory
@@ -48,15 +72,15 @@ print('objectiveHistory')
 for i in objectiveHistory:
 	print(i)
 
+
+# In[11]:
+
 # obtain the receiver-operating characteristic as a dataframe and areaunderROC
 trainingSummary.roc.show()
 print('Area Under ROC: ', str(trainingSummary.areaUnderROC))
 
-# set the model threshold to maximize F-measure
-fMeasure = trainingSummary.fMeasureByThreshold
-maxFMeasure = fMeasure.groupby().max('F-Measure').select('max(F-Measure)').head()
-bestThreshold = fMeasure.where(fMeasure['F-Measure'] == maxFMeasure['max(F-Measure']).select('threshold').head()['threshold']
-lr.setThreshold(bestThreshold)
+
+# In[12]:
 
 
 
