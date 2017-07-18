@@ -15,7 +15,11 @@ from pyspark import SparkContext
 
 # import dataframe from s3, which will be used as a training dataset
 filepath = '/mnt/somefilepath/'
-df = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").option("inferschema", "true").option("mode", "DROPMALFORMED").load(filepath)
+df = sqlContext.read.format("com.databricks.spark.csv")
+					.option("header", "true")
+					.option("inferschema", "true")
+					.option("mode", "DROPMALFORMED")
+					.load(filepath)
 df.cache()
 df.printSchema()
 
@@ -28,14 +32,16 @@ df.printSchema()
 # when alpha = 1 --> lasso; when alpha = 0 --> ridge
 # regularization prevents overfitting 
 from pyspark.ml.classification import LogisticRegression
-lr = LogisticRegression(labelCol="biologic", featuresCol="features", maxIter = 10, regParam = 0.0, elasticNetParam = 0.8)
+lr = LogisticRegression(labelCol="biologic", featuresCol="features", 
+						maxIter = 10, regParam = 0.0, elasticNetParam = 0.8)
 
 
 # In[5]:
 
 # define features and label
 from pyspark.ml.feature import VectorAssembler
-assembler = (VectorAssembler(inputCols=[x for x in df.columns if x not in ['biologic']],outputCol='features'))
+assembler = (VectorAssembler(inputCols=[x for x in df.columns if x not in ['biologic']],
+							outputCol='features'))
 df_cleaned = assembler.transform(df)
 df_cleaned.cache()
 
