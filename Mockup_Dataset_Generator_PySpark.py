@@ -14,45 +14,47 @@ from pyspark.sql.functions import udf
 
 
 # In[3]:
+# define sample dataset size n
+n = 10000
 
 # test the speed of RDD random generator
-gender_1 = RandomRDDs.normalRDD(sc, 10000, seed = 1).map(lambda x: np.round(x))
+gender_1 = RandomRDDs.normalRDD(sc, n, seed = 1).map(lambda x: np.round(x))
 gender_1.count()
 
 
 # In[4]:
 
 # test the speed of numpy random generator
-gender_2 = np.random.randint(0,2,size = 10000)
+gender_2 = np.random.randint(0,2,size = n)
 len(gender_2)
 
 
-# For the size 10000, numpy is faster than spark RDD. Use numpy to build arrays 
+# For the size n, numpy is faster than spark RDD. Use numpy to build arrays 
 # then convert to pyspark dataframe.
 
 # In[6]:
 
 # create numpy arrays 
-biologic = np.random.randint(0,2,size = 10000)
-gender = np.random.randint(0,2,size = 10000)
-age = np.random.randint(18,85,size = 10000)
-num_ocs_1 = np.random.randint(0,12,size = 10000)
-days_last_ocs = np.random.randint(0,365,size = 10000)
-num_ics_1 = np.random.randint(0,12,size = 10000)
-days_last_ics = np.random.randint(0,365,size = 10000)
-num_laba_1 = np.random.randint(0,12,size = 10000)
-days_last_laba = np.random.randint(0,365,size = 10000)
-pres_1 = np.random.randint(0,2,size = 10000)
-pres_2 = np.random.randint(0,2,size = 10000)
-presgroup_1 = np.random.randint(0,4,size = 10000)
-presgroup_2 = np.random.randint(0,4,size = 10000)
-payer_1 = np.random.randint(0,2,size = 10000)
-payer_2 = np.random.randint(0,2,size = 10000)
-alle_1 = np.random.randint(0,2,size = 10000)
-alle_2 = np.random.randint(0,2,size = 10000)
-eos_max_1 = np.random.randint(0,36,size = 10000)
-days_eos = np.random.randint(0,365,size = 10000)
-cop_d = np.random.randint(0,2,size = 10000)
+biologic = np.random.randint(0,2,size = n)
+gender = np.random.randint(0,2,size = n)
+age = np.random.randint(18,85,size = n)
+num_ocs_1 = np.random.randint(0,12,size = n)
+days_last_ocs = np.random.randint(0,365,size = n)
+num_ics_1 = np.random.randint(0,12,size = n)
+days_last_ics = np.random.randint(0,365,size = n)
+num_laba_1 = np.random.randint(0,12,size = n)
+days_last_laba = np.random.randint(0,365,size = n)
+pres_1 = np.random.randint(0,2,size = n)
+pres_2 = np.random.randint(0,2,size = n)
+presgroup_1 = np.random.randint(0,4,size = n)
+presgroup_2 = np.random.randint(0,4,size = n)
+payer_1 = np.random.randint(0,2,size = n)
+payer_2 = np.random.randint(0,2,size = n)
+alle_1 = np.random.randint(0,2,size = n)
+alle_2 = np.random.randint(0,2,size = n)
+eos_max_1 = np.random.randint(0,36,size = n)
+days_eos = np.random.randint(0,365,size = n)
+cop_d = np.random.randint(0,2,size = n)
 
 
 # In[7]:
