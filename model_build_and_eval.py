@@ -115,9 +115,9 @@ param_elasticNet = [0.8, 0.85, 0.9]
 # In[20]:
 
 # set up the parameter grid
-paramGrid = ParamGridBuilder().addGrid(lr.maxIter, [10,15])
-                              .addGrid(lr.regParam, [0.0, 0.1])
-                              .addGrid(lr.elasticNetParam, [0.9, 0.8])
+paramGrid = ParamGridBuilder().addGrid(lr.maxIter, param_maxIter)
+                              .addGrid(lr.regParam, param_reg)
+                              .addGrid(lr.elasticNetParam, param_elasticNet)
                               .build()
 
 
