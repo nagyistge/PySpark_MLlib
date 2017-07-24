@@ -3,7 +3,12 @@
 
 # **Logistic Regression model build with cross validation and evaluation**
 
-# Import libraries used in this notebook
+# In[2]:
+
+##########################################
+# Import libraries used in this notebook #
+##########################################
+
 
 # In[3]:
 
@@ -39,23 +44,29 @@ from plotly.offline import plot
 import plotly.graph_objs as go
 
 
-# Load dataset from S3 and rename dependent variable column as label
+# In[7]:
+
+######################################################################
+# Load dataset from S3 and rename dependent variable column as label #
+######################################################################
+
 
 # In[8]:
 
 # load dataset from S3 and rename dependent variable column 
-filepath = '/somefilepathhere/'
-df = sqlContext.read.format("com.databricks.spark.csv")
-                    .option("header", "true")
-                    .option("inferschema", "true")
-                    .option("mode", "DROPMALFORMED")
-                    .load(filepath)
-df = df.withColumnRenamed("flagged", "label")
+filepath = 'somefilepathhere'
+df = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").option("inferschema", "true").option("mode", "DROPMALFORMED").load(filepath)
+df = df.withColumnRenamed("biologic", "label")
 df.cache()
 df.printSchema()
 
 
-# Split training and test dataset
+# In[9]:
+
+###################################
+# Split training and test dataset #
+###################################
+
 
 # In[10]:
 
@@ -71,15 +82,24 @@ split_seed = 123
 df_train, df_test = df.randomSplit([train_ratio,test_ratio], seed = split_seed)
 
 
-# Build model: logistic regression with cross validation
+# In[12]:
 
-# *Set up feature transformation and logistic regression in pipeline (estimator)*
+##########################################################
+# Build model: logistic regression with cross validation #
+##########################################################
+
+
+# In[13]:
+
+#################################################################################
+# Set up feature transformation and logistic regression in pipeline (estimator) #
+#################################################################################
+
 
 # In[14]:
 
 # set up the assembler to create the features vector for logistic regression
-assembler = (VectorAssembler(inputCols=[x for x in df_train.columns if x not in ['label']], 
-                              outputCol='features'))
+assembler = (VectorAssembler(inputCols=[x for x in df_train.columns if x not in ['label']], outputCol='features'))
 
 
 # In[15]:
@@ -94,7 +114,12 @@ lr = LogisticRegression(labelCol="label", featuresCol="features")
 pipeline = Pipeline(stages = [assembler, lr])
 
 
-# *Set up logistic regression parameter grid for cross validation (estimator parameter map)*
+# In[17]:
+
+############################################################################################
+# Set up logistic regression parameter grid for cross validation (estimator parameter map) #
+############################################################################################
+
 
 # In[18]:
 
@@ -115,13 +140,15 @@ param_elasticNet = [0.8, 0.85, 0.9]
 # In[20]:
 
 # set up the parameter grid
-paramGrid = ParamGridBuilder().addGrid(lr.maxIter, param_maxIter)
-                              .addGrid(lr.regParam, param_reg)
-                              .addGrid(lr.elasticNetParam, param_elasticNet)
-                              .build()
+paramGrid = ParamGridBuilder().addGrid(lr.maxIter, param_maxIter).addGrid(lr.regParam, param_reg).addGrid(lr.elasticNetParam, param_elasticNet).build()
 
 
-# *Set up model evaluator for cross validation*
+# In[21]:
+
+###############################################
+# Set up model evaluator for cross validation #
+###############################################
+
 
 # In[22]:
 
@@ -129,7 +156,12 @@ paramGrid = ParamGridBuilder().addGrid(lr.maxIter, param_maxIter)
 evaluator = BinaryClassificationEvaluator()
 
 
+# In[23]:
+
+########################################################################
 # Use k-fold cross validation to fit the dataset and find the best model
+########################################################################
+
 
 # In[24]:
 
@@ -140,16 +172,23 @@ k = 3
 # In[25]:
 
 # set up cross validation and fit the training dataset
-crossval = CrossValidator(estimator = pipeline, 
-                          estimatorParamMaps = paramGrid, 
-                          evaluator = evaluator, 
-                          numFolds = k)
+crossval = CrossValidator(estimator = pipeline, estimatorParamMaps = paramGrid, evaluator = evaluator, numFolds = k)
 cvModel = crossval.fit(df_train)
 
 
-# Evaluate model result and generate output
+# In[26]:
 
-# *Evaluate model result*
+#############################################
+# Evaluate model result and generate output #
+#############################################
+
+
+# In[27]:
+
+#########################
+# Evaluate model result #
+#########################
+
 
 # In[28]:
 
@@ -182,9 +221,7 @@ param = pd.Series(cvModel.getEstimatorParamMaps()[best_index])
 # In[32]:
 
 # get coefficients and odds ratio of each feature
-coef = pd.DataFrame(data = best.coefficients.values,
-                    index = [x for x in df_train.columns if x not in ['label']], 
-                    columns = ['Coefficient'])
+coef = pd.DataFrame(data = best.coefficients.values,index = [x for x in df_train.columns if x not in ['label']], columns = ['Coefficient'])
 coef['Odds_ratio'] = coef['Coefficient'].apply(np.exp)
 
 
@@ -205,6 +242,7 @@ num_features = best.numFeatures
 
 # get full table of label, features, probability, and prediction
 predictions = bestSum.predictions
+display(predictions)
 
 
 # In[36]:
@@ -256,17 +294,11 @@ confusion_mtrx = metrics.confusionMatrix()
 roc = bestSum.roc.toPandas()
 lw = 2
 
-trace_roc1 = go.Scatter(x=roc['FPR'], y=roc['TPR'], mode='lines', 
-                        line=dict(color='darkorange', width=lw),
-                        name='ROC curve (area = %0.2f)' %bestSum.areaUnderROC)
+trace_roc1 = go.Scatter(x=roc['FPR'], y=roc['TPR'], mode='lines', line=dict(color='darkorange', width=lw),name='ROC curve (area = %0.2f)' %bestSum.areaUnderROC)
 
-trace_roc2 = go.Scatter(x=[0, 1], y=[0, 1], mode='lines', 
-                        line=dict(color='navy', width=lw, 
-                        dash='dash'),showlegend=False)
+trace_roc2 = go.Scatter(x=[0, 1], y=[0, 1], mode='lines', line=dict(color='navy', width=lw, dash='dash'),showlegend=False)
 
-layout_roc = go.Layout(title='Receiver operating characteristic',
-                        xaxis=dict(title='False Positive Rate'),
-                        yaxis=dict(title='True Positive Rate'))
+layout_roc = go.Layout(title='Receiver operating characteristic',xaxis=dict(title='False Positive Rate'),yaxis=dict(title='True Positive Rate'))
 
 fig_roc = plot(go.Figure(data=[trace_roc1, trace_roc2], layout=layout_roc), output_type='div')
 
@@ -276,13 +308,9 @@ fig_roc = plot(go.Figure(data=[trace_roc1, trace_roc2], layout=layout_roc), outp
 # plot precision against recall value
 precision_recall = bestSum.pr.toPandas()
 
-trace_pr = go.Scatter(x=precision_recall['recall'], y=precision_recall['precision'], 
-                      mode='lines', line=dict(color='green', width=lw), 
-                      name='precision recall curve')
+trace_pr = go.Scatter(x=precision_recall['recall'], y=precision_recall['precision'], mode='lines', line=dict(color='green', width=lw), name='precision recall curve')
 
-layout_pr = go.Layout(title='Precision Recall',
-                      xaxis=dict(title='Recall'),
-                      yaxis=dict(title='Precision'))
+layout_pr = go.Layout(title='Precision Recall',xaxis=dict(title='Recall'),yaxis=dict(title='Precision'))
 
 fig_pr = plot(go.Figure(data=[trace_pr], layout=layout_pr), output_type='div')
 
@@ -294,29 +322,53 @@ fMeasure = bestSum.fMeasureByThreshold.toPandas()
 precision_thre = bestSum.precisionByThreshold.toPandas()
 recall_thre = bestSum.recallByThreshold.toPandas()
 
-trace_fM_thre = go.Scatter(x=fMeasure['threshold'], y=fMeasure['F-Measure'], 
-                            mode='lines', line=dict(color='green', width=lw), 
-                            name='F Measure By Threshold Curve')
+trace_fM_thre = go.Scatter(x=fMeasure['threshold'], y=fMeasure['F-Measure'], mode='lines', line=dict(color='green', width=lw), name='F Measure By Threshold Curve')
 
-trace_pre_thre = go.Scatter(x=precision_thre['threshold'], y=precision_recall['precision'], 
-                            mode='lines', line=dict(color='purple', width=lw), 
-                            name='Precision By Threshold Curve')
+trace_pre_thre = go.Scatter(x=precision_thre['threshold'], y=precision_recall['precision'], mode='lines', line=dict(color='purple', width=lw), name='Precision By Threshold Curve')
 
-trace_rec_thre = go.Scatter(x=recall_thre['threshold'], y=recall_thre['recall'], 
-                            mode='lines', line=dict(color='orange', width=lw), 
-                            name='Recall By Threshold Curve')
+trace_rec_thre = go.Scatter(x=recall_thre['threshold'], y=recall_thre['recall'], mode='lines', line=dict(color='orange', width=lw), name='Recall By Threshold Curve')
 
-layout_fpr_thre = go.Layout(title='F-Measure, Precision, and Recall by Threshold',
-                            xaxis=dict(title='Threshold'),
-                            yaxis=dict(title='Value'))
+layout_fpr_thre = go.Layout(title='F-Measure, Precision, and Recall by Threshold',xaxis=dict(title='Threshold'),yaxis=dict(title='Value'))
 
-fig_fpr_thre = plot(go.Figure(data=[trace_fM_thre, trace_pre_thre, trace_rec_thre], 
-                              layout=layout_fpr_thre), output_type='div')
+fig_fpr_thre = plot(go.Figure(data=[trace_fM_thre, trace_pre_thre, trace_rec_thre], layout=layout_fpr_thre), output_type='div')
 
 
-# Output model evaluation result
+# In[45]:
+
+# plot model performance lift curve
+# step 1: get a dataframe of prediction probability against actual label
+from pyspark.sql.functions import udf
+from pyspark.sql.types import DoubleType
+# build udf to find the last element
+lastelement=udf(lambda v:float(v[-1]),DoubleType())
+df_lift = predictions.withColumn('prob', lastelement(predictions.probability)).select('prob', 'label')
+# step 2: quantileDiscretize the probability
+# compute decile of probability
+from pyspark.ml.feature import QuantileDiscretizer
+discretizer = QuantileDiscretizer(numBuckets=10, inputCol="prob", outputCol="decile")
+df_lift = discretizer.fit(df_lift).transform(df_lift)
+# step 3: group dataframe by decile and compute average probability and label
+df_lift = df_lift.groupby('decile').agg({'prob': 'mean', 'label': 'mean'}).toPandas()
+df_lift.sort_values('decile', ascending = True, inplace = True)
+df_lift['decile'] = df_lift['decile'].apply(lambda x: x+1)
+# step 4: plot the lift curve
+trace_lift1 = go.Scatter(x=df_lift['decile'], y=df_lift['avg(prob)'], mode='lines', line=dict(color='darkred', width=lw),name='Predicted Average Probability')
+
+trace_lift2 = go.Scatter(x=df_lift['decile'], y=df_lift['avg(label)'], mode='lines', line=dict(color='navy', width=lw),name = 'Actual Average Label')
+
+layout_lift = go.Layout(title='Predicted vs. Actual Lift Curve',xaxis=dict(title='Risk (Low -> High)'),yaxis=dict(title='Value'))
+
+fig_lift = plot(go.Figure(data=[trace_lift1, trace_lift2], layout=layout_lift), output_type='div')
+
 
 # In[46]:
+
+##################################
+# Output model evaluation result #
+##################################
+
+
+# In[47]:
 
 # define a function to print all results
 def print_result():
@@ -345,31 +397,37 @@ def print_result():
   print(confusion_mtrx.toArray())
 
 
-# In[47]:
+# In[48]:
 
 # print evaluation result
 print_result()
 
 
-# In[48]:
+# In[49]:
 
 # display ROC curve
 displayHTML(fig_roc)
 
 
-# In[49]:
+# In[50]:
 
 # display precision_recall curve
 displayHTML(fig_pr)
 
 
-# In[50]:
+# In[51]:
 
 # display F Measure, precision, and recall by threshold graph
 displayHTML(fig_fpr_thre)
 
 
-# In[51]:
+# In[52]:
+
+# display performance lift curve
+displayHTML(fig_lift)
+
+
+# In[53]:
 
 
 
